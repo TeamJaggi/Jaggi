@@ -1,1 +1,4 @@
-python-telegram-bot==20.7
+python-telegram-bot>=20.0
+aiohttp>=3.8.0
+pyngrok>=6.0.0
+nest-asyncio>=1.5.0
