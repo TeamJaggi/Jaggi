@@ -4,11 +4,12 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 from aiohttp import web
 import re
 import nest_asyncio
-from pyngrok import ngrok
+import subprocess
+import time
+import requests
 
 # Configuration
 YOUR_BOT_TOKEN = "8103884844:AAE-67rbwRIjVu98GCg4TWPuxq2Yz9JdvrY"  # Replace with your bot token
-YOUR_NGROK_TOKEN = "2zDBBUGjp433mqHglop31lwpFpb_2bWTSpJ23fyZZBc5hWxQB"  # Remember to revoke and regenerate this!
 WEBHOOK_PORT = 8443  # Can be changed if needed
 
 # Enable logging
@@ -193,17 +194,34 @@ async def handle_webhook(request):
 
 async def setup_webhook():
     """Configure ngrok and set up webhook"""
-    # Authenticate ngrok
-    ngrok.set_auth_token(YOUR_NGROK_TOKEN)
-    
-    # Create ngrok tunnel
-    tunnel = ngrok.connect(WEBHOOK_PORT, bind_tls=True)
-    webhook_url = f"{tunnel.public_url}/webhook"
-    
-    # Set webhook in Telegram
-    await application.bot.set_webhook(webhook_url)
-    logger.info(f"Webhook URL: {webhook_url}")
-    return webhook_url
+    try:
+        # Start ngrok process
+        ngrok_process = subprocess.Popen(
+            ["./ngrok", "http", str(WEBHOOK_PORT)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        
+        # Wait for tunnel to establish
+        time.sleep(5)
+        
+        # Get public URL
+        response = requests.get("http://localhost:4040/api/tunnels", timeout=10)
+        response.raise_for_status()
+        tunnels = response.json()
+        
+        if tunnels and tunnels.get('tunnels'):
+            webhook_url = tunnels['tunnels'][0]['public_url'] + "/webhook"
+            await application.bot.set_webhook(webhook_url)
+            logger.info(f"Webhook URL: {webhook_url}")
+            return webhook_url
+        else:
+            logger.error("No active tunnels found")
+            return None
+            
+    except Exception as e:
+        logger.error(f"Failed to setup webhook: {str(e)}")
+        return None
 
 async def on_startup(app):
     """Run when application starts"""
@@ -240,4 +258,4 @@ if __name__ == '__main__':
         port=WEBHOOK_PORT,
         access_log=None,  # Disable aiohttp access logs
         handle_signals=True
-    )
+        )
