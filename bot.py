@@ -228,11 +228,10 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 def main() -> None:
     # Use environment variable for bot token
-    import os
-    token = os.getenv('BOT_TOKEN')
+    token = '8103884844:AAE-67rbwRIjVu98GCg4TWPuxq2Yz9JdvrY'
     if not token:
-        logger.error("BOT_TOKEN environment variable not set")
-        raise ValueError("BOT_TOKEN environment variable not set")
+        logger.error("BOT token is not set")
+        raise ValueError("BOT token is not set")
     
     application = Application.builder().token(token).build()
 
