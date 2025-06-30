@@ -11,14 +11,18 @@ from telegram.error import TelegramError
 
 # Enable logging
 logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+    handlers=[
+        logging.FileHandler("bot.log"),
+        logging.StreamHandler()
+    ]
 )
 logger = logging.getLogger(__name__)
 
-# In-memory storage (replace with a database for production)
-users_data = {}  # Structure: {user_id: {"sources": [], "targets": [], "replacements": {}, "forwarding_active": False}}
+# In-memory storage
+users_data = {}  # {user_id: {"sources": [], "targets": [], "replacements": {}, "forwarding_active": False}}
 
-# Initialize user data
 def init_user_data(user_id):
     if user_id not in users_data:
         users_data[user_id] = {
@@ -37,6 +41,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "Use /forward to start forwarding messages from public channels. "
         "Add public channels with /addsource (e.g., @ChannelName)."
     )
+    logger.info(f"User {user_id} started the bot")
 
 # Command: /settings
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -51,6 +56,7 @@ async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         f"Forwarding: {'Active' if user_data['forwarding_active'] else 'Inactive'}"
     )
     await update.message.reply_text(settings_text)
+    logger.info(f"User {user_id} viewed settings")
 
 # Command: /addsource
 async def add_source(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -61,7 +67,6 @@ async def add_source(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         return
     source = context.args[0]
     try:
-        # Verify the channel is accessible and is a channel
         chat = await context.bot.get_chat(source)
         if chat.type == "channel":
             if source not in users_data[user_id]["sources"]:
@@ -72,6 +77,7 @@ async def add_source(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
                 await update.message.reply_text(f"Source {source} already exists.")
         else:
             await update.message.reply_text("The source must be a public channel.")
+            logger.warning(f"User {user_id} tried to add non-channel source: {source}")
     except TelegramError as e:
         await update.message.reply_text(f"Error: Could not access {source}. Ensure it's a public channel. ({e})")
         logger.error(f"Failed to add source {source} for user {user_id}: {e}")
@@ -85,7 +91,6 @@ async def add_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         return
     target = context.args[0]
     try:
-        # Verify the bot has permission to send messages to the target
         chat = await context.bot.get_chat(target)
         if chat.type in ["channel", "group", "supergroup"]:
             if target not in users_data[user_id]["targets"]:
@@ -96,6 +101,7 @@ async def add_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
                 await update.message.reply_text(f"Target {target} already exists.")
         else:
             await update.message.reply_text("The target must be a channel or group.")
+            logger.warning(f"User {user_id} tried to add non-channel/group target: {target}")
     except TelegramError as e:
         await update.message.reply_text(f"Error: Could not access {target}. Ensure the bot is added and has posting permissions. ({e})")
         logger.error(f"Failed to add target {target} for user {user_id}: {e}")
@@ -114,6 +120,7 @@ async def remove_source(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         logger.info(f"User {user_id} removed source: {source}")
     else:
         await update.message.reply_text(f"Source {source} not found.")
+        logger.warning(f"User {user_id} tried to remove non-existent source: {source}")
 
 # Command: /removetarget
 async def remove_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -129,6 +136,7 @@ async def remove_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         logger.info(f"User {user_id} removed target: {target}")
     else:
         await update.message.reply_text(f"Target {target} not found.")
+        logger.warning(f"User {user_id} tried to remove non-existent target: {target}")
 
 # Command: /replace
 async def replace(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -156,6 +164,7 @@ async def remove_replace(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         logger.info(f"User {user_id} removed replacement: {old_text}")
     else:
         await update.message.reply_text(f"Replacement for '{old_text}' not found.")
+        logger.warning(f"User {user_id} tried to remove non-existent replacement: {old_text}")
 
 # Command: /forward
 async def forward(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -176,17 +185,35 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("Forwarding stopped.")
     logger.info(f"User {user_id} stopped forwarding")
 
+# Command: /debug
+async def debug(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
+    init_user_data(user_id)
+    try:
+        updates = await context.bot.get_updates(timeout=10)
+        if updates:
+            update_text = f"Recent updates: {updates}"
+            for u in updates:
+                logger.debug(f"Debug update: {u}")
+            await update.message.reply_text(f"Fetched {len(updates)} recent updates. Check bot.log for details.")
+        else:
+            await update.message.reply_text("No recent updates received.")
+            logger.info("No updates found in debug command")
+    except TelegramError as e:
+        await update.message.reply_text(f"Error fetching updates: {e}")
+        logger.error(f"Debug command failed: {e}")
+
 # Handle incoming messages from source channels
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    logger.debug(f"Received update: {update}")
     if not update.channel_post:
-        logger.debug("Received non-channel post update, ignoring")
+        logger.debug(f"Ignored non-channel post update: {update}")
         return
 
     channel_username = update.channel_post.chat.username
     channel_id = f"@{channel_username}" if channel_username else str(update.channel_post.chat.id)
-    logger.debug(f"Received channel post from {channel_id}")
-
     message_text = update.channel_post.text or update.channel_post.caption or ""
+    logger.info(f"Received channel post from {channel_id}: text='{message_text}', photo={bool(update.channel_post.photo)}, video={bool(update.channel_post.video)}")
 
     # Forward messages to users who have this channel as a source
     for user_id, data in users_data.items():
@@ -227,12 +254,11 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     logger.error(f"Update {update} caused error {context.error}")
 
 def main() -> None:
-    # Use environment variable for bot token
     token = '8103884844:AAE-67rbwRIjVu98GCg4TWPuxq2Yz9JdvrY'
     if not token:
-        logger.error("BOT token is not set")
-        raise ValueError("BOT token is not set")
-    
+        logger.error("Bot token is not set")
+        raise ValueError("Bot token is not set")
+
     application = Application.builder().token(token).build()
 
     # Add command handlers
@@ -246,6 +272,7 @@ def main() -> None:
     application.add_handler(CommandHandler("removereplace", remove_replace))
     application.add_handler(CommandHandler("forward", forward))
     application.add_handler(CommandHandler("stop", stop))
+    application.add_handler(CommandHandler("debug", debug))
 
     # Add message handler for channel posts
     application.add_handler(MessageHandler(filters.ChatType.CHANNEL, handle_message))
