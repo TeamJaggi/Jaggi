@@ -16,7 +16,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # In-memory storage (replace with a database for production)
-users_data = {}  # Structure: {user_id: {"sources": [], "targets": [], "replacements": {}}}
+users_data = {}  # Structure: {user_id: {"sources": [], "targets": [], "replacements": {}, "forwarding_active": False}}
 
 # Initialize user data
 def init_user_data(user_id):
@@ -33,8 +33,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     init_user_data(user_id)
     await update.message.reply_text(
-        "Hi! I'm your auto-forwarder bot. I'm alive! 😄\n"
-        "Use /forward to start forwarding, /settings to configure, or check other commands."
+        "Hi! I'm your auto-forwarder bot. 😄\n"
+        "Use /forward to start forwarding messages from public channels. "
+        "Add public channels with /addsource (e.g., @ChannelName)."
     )
 
 # Command: /settings
@@ -56,14 +57,22 @@ async def add_source(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     user_id = update.effective_user.id
     init_user_data(user_id)
     if not context.args:
-        await update.message.reply_text("Please provide a channel username or ID. E.g., /addsource @ChannelName")
+        await update.message.reply_text("Please provide a public channel username. E.g., /addsource @ChannelName")
         return
     source = context.args[0]
-    if source not in users_data[user_id]["sources"]:
-        users_data[user_id]["sources"].append(source)
-        await update.message.reply_text(f"Added source: {source}")
-    else:
-        await update.message.reply_text(f"Source {source} already exists.")
+    try:
+        # Verify the channel is accessible
+        chat = await context.bot.get_chat(source)
+        if chat.type == "channel" and not chat.is_private:
+            if source not in users_data[user_id]["sources"]:
+                users_data[user_id]["sources"].append(source)
+                await update.message.reply_text(f"Added source: {source}")
+            else:
+                await update.message.reply_text(f"Source {source} already exists.")
+        else:
+            await update.message.reply_text("The source must be a public channel.")
+    except TelegramError as e:
+        await update.message.reply_text(f"Error: Could not access {source}. Ensure it's a public channel. ({e})")
 
 # Command: /addtarget
 async def add_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -73,18 +82,26 @@ async def add_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         await update.message.reply_text("Please provide a channel username or ID. E.g., /addtarget @ChannelName")
         return
     target = context.args[0]
-    if target not in users_data[user_id]["targets"]:
-        users_data[user_id]["targets"].append(target)
-        await update.message.reply_text(f"Added target: {target}")
-    else:
-        await update.message.reply_text(f"Target {target} already exists.")
+    try:
+        # Verify the bot has permission to send messages to the target
+        chat = await context.bot.get_chat(target)
+        if chat.type in ["channel", "group", "supergroup"]:
+            if target not in users_data[user_id]["targets"]:
+                users_data[user_id]["targets"].append(target)
+                await update.message.reply_text(f"Added target: {target}")
+            else:
+                await update.message.reply_text(f"Target {target} already exists.")
+        else:
+            await update.message.reply_text("The target must be a channel or group.")
+    except TelegramError as e:
+        await update.message.reply_text(f"Error: Could not access {target}. Ensure the bot is added and has posting permissions. ({e})")
 
 # Command: /removesource
 async def remove_source(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     init_user_data(user_id)
     if not context.args:
-        await update.message.reply_text("Please provide a channel username or ID. E.g., /removesource @ChannelName")
+        await update.message.reply_text("Please provide a channel username. E.g., /removesource @ChannelName")
         return
     source = context.args[0]
     if source in users_data[user_id]["sources"]:
@@ -151,44 +168,45 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 # Handle incoming messages from source channels
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    message = update.message
-    if not message:
+    if not update.channel_post:
         return
 
-    # Check if the message is from a channel
-    if update.channel_post:
-        channel_id = str(update.channel_post.chat.id)
-        message_text = update.channel_post.text or update.channel_post.caption or ""
+    channel_username = update.channel_post.chat.username
+    if not channel_username:
+        return  # Skip if the channel doesn't have a username
+    channel_id = f"@{channel_username}"
 
-        # Apply replacements
-        for user_id, data in users_data.items():
-            if data["forwarding_active"] and channel_id in data["sources"]:
-                modified_text = message_text
-                for old, new in data["replacements"].items():
-                    modified_text = modified_text.replace(old, new)
+    message_text = update.channel_post.text or update.channel_post.caption or ""
 
-                # Forward to all target channels
-                for target in data["targets"]:
-                    try:
-                        if update.channel_post.photo:
-                            await context.bot.send_photo(
-                                chat_id=target,
-                                photo=update.channel_post.photo[-1].file_id,
-                                caption=modified_text,
-                            )
-                        elif update.channel_post.video:
-                            await context.bot.send_video(
-                                chat_id=target,
-                                video=update.channel_post.video.file_id,
-                                caption=modified_text,
-                            )
-                        else:
-                            await context.bot.send_message(
-                                chat_id=target,
-                                text=modified_text or "Forwarded message",
-                            )
-                    except TelegramError as e:
-                        logger.error(f"Failed to forward to {target}: {e}")
+    # Forward messages to users who have this channel as a source
+    for user_id, data in users_data.items():
+        if data["forwarding_active"] and channel_id in data["sources"]:
+            modified_text = message_text
+            for old, new in data["replacements"].items():
+                modified_text = modified_text.replace(old, new)
+
+            # Forward to all target channels
+            for target in data["targets"]:
+                try:
+                    if update.channel_post.photo:
+                        await context.bot.send_photo(
+                            chat_id=target,
+                            photo=update.channel_post.photo[-1].file_id,
+                            caption=modified_text,
+                        )
+                    elif update.channel_post.video:
+                        await context.bot.send_video(
+                            chat_id=target,
+                            video=update.channel_post.video.file_id,
+                            caption=modified_text,
+                        )
+                    else:
+                        await context.bot.send_message(
+                            chat_id=target,
+                            text=modified_text or "Forwarded message",
+                        )
+                except TelegramError as e:
+                    logger.error(f"Failed to forward to {target}: {e}")
 
 # Error handler
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
