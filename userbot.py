@@ -9,15 +9,15 @@ import sqlite3
 import re
 from collections import defaultdict
 
-api_id = 25630682
-api_hash = "2430bd58c780ce13be62e7924bd29328"
+api_id = 22818418
+api_hash = "a9a7566986840ec6a965d9cb67fb27ca"
 
 # Session string from environment variable
-session_str = "1BVtsOGcBuza4NVQupd3nSOfbKhHFXEgQTC8EsXizXWSHYBUqzjC49wxN7rX_jvaeU6NzWNUOrHsxP4s2Ky4FzLDYRbrP-X8x3JK-bpF-GU46u40tnmjMaxmW-VpxVKi9ywIXXPd1mJt0axe39VXiVtOdPv1LSQJlEXrv6hUTv3T4wzhvOhWWViReVrwJZO_jlL_EBTuMMR7G2V4hdpy2daVWrzGXakYOkjJXSN1ufmZb8cCqyEE0Kr7v0-Mg-dyqjrM2LT2gnMvlzhdiztCpAI_IGTY08pTvgsPPi59fudnwIoNDK9nP0jU8dLx4fSLRLRg98u0hoHQI21rnBb4mN_zzbKV0P5k="
+session_str = "BQFcLnIAqkS6NPHtQ1WxFuDuOvqi392giAgrAsxVbif_QLb5pAz2EeJnRxT3Asva1XUeDRMkoIC1mD22pJb-IuR8zza_uD1rHlEMjUxxXqIfLYpMzMzgsTOg3OZmSmVicv11TBdxH252xM0ZajY7ujCiodFDlSbNrOSiXoasQRkaB6BarybR32Rz4u51gKpMWi0khcwqJpVMB6Jr1yBdhi6W5ZHZ8PuyOjg-Y-BK7LAqZLCR1lo53L2ZYGchxOs5WjmYP9n2bg0-DPfICdt6jt_m0jHbREqZJ7PevUg1P3eNDM0Mq_oOXDCu_BEo1s-djdAwu2lSOhQDlBaFPHd2pI9Nn4Wx6AAAAAG1VzlQAA"
 client = TelegramClient(StringSession(session_str), api_id, api_hash)
 
 # Bot token
-TOKEN = "8103884844:AAF37R5NyXmqKwRR898_TRO2SwOfDBb98Ew"
+TOKEN = "7931829452:AAFeDXaKxxdbqOpggZCWrau3pgN11ijogiM"
 
 # Your Telegram User ID (replace with your actual ID)
 OWNER_USER_ID = 6651946441
