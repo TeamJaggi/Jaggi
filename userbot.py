@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "✅ 𝑇𝑟𝑦𝑖𝑛𝑔 𝑇𝑜 𝑇𝑎𝑐𝑘𝑙𝑒 𝑆𝑒𝑡𝑏𝑎𝑐𝑘 𝑇𝐺 - @𝑀𝑟𝐽𝑎𝑔𝑔𝑖9!"
+    return "✅ 𝑇𝑟𝑦𝑖𝑛𝑔 𝑇𝑜 𝑇𝑎𝑐𝑘𝑙𝑒 𝑆𝑒𝑡𝑏𝑎𝑐𝑘 𝑇𝐺 - @MrJaggiX!"
 
 def run_flask():
     port = int(os.environ.get("PORT", 5000))  
@@ -26,7 +26,7 @@ import sqlite3
 import re
 from collections import defaultdict
 
-api_id = 27631275
+api_id = int
 api_hash = "d15c8c4c88a5b82aab6a673eff8ca244"
 
 # Session string from environment variable
@@ -369,7 +369,7 @@ def admin_required(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
         if not bot.is_admin(user_id):
-            await update.message.reply_text("❌ You are not authorized to use this command.")
+            await update.message.reply_text("➢𝑌𝑜𝑢 𝐴𝑟𝑒 𝑁𝑜𝑡 𝐴𝑢𝑡ℎ𝑜𝑟𝑖𝑠𝑒𝑑 𝑡𝑜 𝑢𝑠𝑒 𝑡ℎ𝑖𝑠 𝐶𝑜𝑚𝑚𝑎𝑛𝑑 🤓🤝")
             return
         return await func(update, context)
     return wrapper
@@ -378,7 +378,7 @@ def owner_required(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
         if not bot.is_owner(user_id):
-            await update.message.reply_text("❌ Only the bot owner can use this command.")
+            await update.message.reply_text("➢𝑂𝑛𝑙𝑦 𝑡ℎ𝑒 𝑏𝑜𝑡 𝑜𝑤𝑛𝑒𝑟 𝑐𝑎𝑛 𝑢𝑠𝑒 𝑡ℎ𝑖𝑠 𝑐𝑜𝑚𝑚𝑎𝑛𝑑 🎗")
             return
         return await func(update, context)
     return wrapper
@@ -390,7 +390,7 @@ async def add_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         command_text = message_text.replace('/add_edit', '').replace('/addword', '').strip()
         
         if '/' not in command_text:
-            await update.message.reply_text("❌ Format: /add_edit old_text/new_text")
+            await update.message.reply_text("↳ Format: /addword old_text/new_text")
             return
             
         old_text, new_text = command_text.split('/', 1)
@@ -398,7 +398,7 @@ async def add_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         new_text = new_text.strip()
         
         if not old_text or not new_text:
-            await update.message.reply_text("❌ Both old_text and new_text required")
+            await update.message.reply_text("↳ Both old_text and new_text required")
             return
         
         conn = sqlite3.connect('auto_forward.db')
@@ -423,7 +423,7 @@ async def add_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
             old_link = parts[0].strip()
             new_link = parts[1].strip()
         else:
-            await update.message.reply_text("❌ Format: /addlink old_link new_link")
+            await update.message.reply_text("↳ Format: /addlink old_link new_link")
             return
         
         if not old_link or not new_link:
@@ -445,7 +445,7 @@ async def add_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def remove_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         if not context.args:
-            await update.message.reply_text("❌ Format: /removeword old_text")
+            await update.message.reply_text("➢ Format: /removeword old_text")
             return
 
         old_text = ' '.join(context.args)
@@ -463,7 +463,7 @@ async def remove_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def remove_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         if not context.args:
-            await update.message.reply_text("❌ Format: /removelink old_link")
+            await update.message.reply_text("➢ Format: /removelink old_link")
             return
 
         old_link = ' '.join(context.args)
@@ -512,7 +512,7 @@ async def forward_on_off(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
         status = context.args[0].lower()
         if status not in ['on', 'off']:
-            await update.message.reply_text("❌ Format: /forward on or /forward off")
+            await update.message.reply_text("➢ Format: /forward on or /forward off")
             return
             
         new_status = status == 'on'
@@ -575,7 +575,7 @@ async def reset_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def add_channel_pair(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         if not context.args or len(context.args) < 2:
-            await update.message.reply_text("❌ Format: /addpair source_channel_id target_channel_id [filter_keywords]")
+            await update.message.reply_text("➢ Format: /addpair source_channel_id target_channel_id [filter_keywords]")
             await update.message.reply_text("📝 Example: /addpair -100123456789 -100987654321 keyword1,keyword2")
             return
             
@@ -592,7 +592,7 @@ async def add_channel_pair(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 await update.message.reply_text(f"✅ Channel pair added:\nSource: {source_id} → Target: {target_id}")
         else:
-            await update.message.reply_text("❌ This channel pair already exists")
+            await update.message.reply_text("😃 This channel pair already exists")
 
     except Exception as e:
         await update.message.reply_text(f"❌ Error: {str(e)}")
@@ -601,7 +601,7 @@ async def add_channel_pair(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def set_channel_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         if not context.args or len(context.args) < 2:
-            await update.message.reply_text("❌ Format: /setfilter source_channel_id target_channel_id filter_keywords")
+            await update.message.reply_text("➢ Format: /setfilter source_channel_id target_channel_id filter_keywords")
             await update.message.reply_text("📝 Example: /setfilter -100123456789 -100987654321 keyword1,keyword2,keyword3")
             await update.message.reply_text("📝 To remove filter: /setfilter source_channel_id target_channel_id none")
             return
@@ -611,7 +611,7 @@ async def set_channel_filter(update: Update, context: ContextTypes.DEFAULT_TYPE)
         
         # Check if the channel pair exists
         if source_id not in bot.channel_pairs or target_id not in bot.channel_pairs[source_id]:
-            await update.message.reply_text("❌ Channel pair does not exist")
+            await update.message.reply_text("🥱 Channel pair does not exist")
             return
             
         # Get filter keywords
@@ -628,7 +628,7 @@ async def set_channel_filter(update: Update, context: ContextTypes.DEFAULT_TYPE)
             else:
                 await update.message.reply_text(f"✅ Filter removed:\nSource: {source_id} → Target: {target_id}")
         else:
-            await update.message.reply_text("❌ Error updating filter")
+            await update.message.reply_text("🥲 Error updating filter")
 
     except Exception as e:
         await update.message.reply_text(f"❌ Error: {str(e)}")
@@ -637,7 +637,7 @@ async def set_channel_filter(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def remove_channel_pair(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         if not context.args:
-            await update.message.reply_text("❌ Format: /removepair source_channel_id [target_channel_id]")
+            await update.message.reply_text("➢ Format: /removepair source_channel_id [target_channel_id]")
             return
             
         source_id = int(context.args[0])
@@ -660,13 +660,13 @@ async def list_channel_pairs(update: Update, context: ContextTypes.DEFAULT_TYPE)
         response = "📡 Channel Pairs:\n\n" + "\n".join([f"Source: {src} → Target: {tgt} | Filter: {filt if filt else 'None'}" for src, tgt, filt in channel_pairs])
         await update.message.reply_text(response)
     else:
-        await update.message.reply_text("❌ No channel pairs set up yet")
+        await update.message.reply_text("🥱 No channel pairs set up yet")
 
 @admin_required
 async def block_content(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         if not context.args:
-            await update.message.reply_text("❌ Format: /block text_to_block")
+            await update.message.reply_text("➢ Format: /block text_to_block")
             return
 
         text_to_block = ' '.join(context.args)
@@ -701,7 +701,7 @@ async def toggle_delete_sync(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def add_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         if not context.args:
-            await update.message.reply_text("❌ Format: /addadmin user_id [username]")
+            await update.message.reply_text("➢ Format: /addadmin user_id [username]")
             return
             
         user_id = int(context.args[0])
@@ -711,7 +711,7 @@ async def add_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if success:
             await update.message.reply_text(f"✅ Admin added: {user_id} ({username})")
         else:
-            await update.message.reply_text("❌ This user is already an admin")
+            await update.message.reply_text("🤔 This user is already an admin")
 
     except Exception as e:
         await update.message.reply_text(f"❌ Error: {str(e)}")
@@ -720,7 +720,7 @@ async def add_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def remove_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         if not context.args:
-            await update.message.reply_text("❌ Format: /removeadmin user_id")
+            await update.message.reply_text("➢ Format: /removeadmin user_id")
             return
             
         user_id = int(context.args[0])
@@ -728,7 +728,7 @@ async def remove_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if success:
             await update.message.reply_text(f"✅ Admin removed: {user_id}")
         else:
-            await update.message.reply_text("❌ Cannot remove the owner or user not found")
+            await update.message.reply_text("😎 Cannot remove the owner or user not found")
 
     except Exception as e:
         await update.message.reply_text(f"❌ Error: {str(e)}")
@@ -740,12 +740,12 @@ async def list_admins(update: Update, context: ContextTypes.DEFAULT_TYPE):
         response = "👑 Admins:\n\n" + "\n".join([f"ID: {user_id}, Name: {username}{' (Owner)' if is_owner else ''}" for user_id, username, is_owner in admins])
         await update.message.reply_text(response)
     else:
-        await update.message.reply_text("❌ No admins found")
+        await update.message.reply_text("🤔 No admins found")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if not bot.is_admin(user_id):
-        await update.message.reply_text("❌ You are not authorized to use this bot.")
+        await update.message.reply_text("➢𝑊𝑎𝑛𝑡 𝑇𝑜 𝐴𝑐𝑐𝑒𝑠𝑠 𝑇ℎ𝑖𝑠 𝐵𝑜𝑡 𝐶𝑜𝑛𝑡𝑎𝑐𝑡 𝐵𝑜𝑡 𝑂𝑤𝑛𝑒𝑟 @𝑀𝑟𝐽𝑎𝑔𝑔𝑖𝑏𝑜𝑡")
         return
         
     status = "ON ✅" if bot.forwarding_enabled else "OFF ❌"
