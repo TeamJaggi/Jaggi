@@ -64,12 +64,12 @@ def init_db():
 init_db()
 
 # Bot configuration
-API_ID = 123456  # Replace with your actual API ID
-API_HASH = "your_api_hash_here"  # Replace with your actual API Hash
-BOT_TOKEN = "your_bot_token_here"  # Get from @BotFather
+API_ID = 27631275  # Replace with your actual API ID
+API_HASH = "d15c8c4c88a5b82aab6a673eff8ca244"  # Replace with your actual API Hash
+BOT_TOKEN = "7173618731:AAG5Do0T3i4OfWQ8lvg1XClMG9ViHHuGddY"  # Get from @BotFather
 
 # Add your user ID as admin
-ADMIN_USER_ID = 123456789  # Change this to your Telegram user ID
+ADMIN_USER_ID = 6651946441  # Change this to your Telegram user ID
 
 # Add admin user to database
 def add_admin_user():
