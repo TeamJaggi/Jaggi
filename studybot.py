@@ -12,7 +12,7 @@ from telegram.ext import (
 
 # =================== CONFIG ===================
 
-TOKEN = "7714600486:AAEZxM0HKDW_F49lM0MpUUWfZo0JTQUQ4j4"
+TOKEN = "7714600486:AAEdqqXvADjwb5rzr907NLHEi2i4jVKHq9s"
 OWNER_ID = 6651946441
 DATA_FILE = "materials.json"
 
