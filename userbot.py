@@ -1050,9 +1050,9 @@ def main():
     application.run_polling(allowed_updates=Update.ALL_UPDATES)
 
 if __name__ == "__main__":
-    # Start the client in a separate thread
-    client.start()
-    print("✅ Client started")
-    
-    # Run the main function
-    main()
+    # Start the client with the session string instead of prompting for input
+    with client:
+        print("✅ Client started with session string")
+        
+        # Run the main function
+        client.loop.run_until_complete(main())
