@@ -1047,7 +1047,7 @@ def main():
 
     # Start the Bot
     print("🤖 Bot is running...")
-    application.run_polling(allowed_updates=Update.ALL_UPDATES)
+    application.run_polling()
 
 if __name__ == "__main__":
     # Start the client with the session string instead of prompting for input
