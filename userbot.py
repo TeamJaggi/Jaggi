@@ -1,20 +1,3 @@
-from flask import Flask
-import threading
-import os
-
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return "✅ 𝑇𝑟𝑦𝑖𝑛𝑔 𝑇𝑜 𝑇𝑎𝑐𝑘𝑙𝑒 𝑆𝑒𝑡𝑏𝑎𝑐𝑘 𝑇𝐺 - @MrJaggiX!"
-
-def run_flask():
-    port = int(os.environ.get("PORT", 5000))  
-    app.run(host="0.0.0.0", port=port)
-
-# Flask ko background thread me start karo
-threading.Thread(target=run_flask).start()
-
 import os
 from telethon.sessions import StringSession
 from telethon import TelegramClient, events
@@ -26,18 +9,18 @@ import sqlite3
 import re
 from collections import defaultdict
 
-api_id = int(os.getenv("API_ID")) 
-api_hash = os.getenv("API_HASH")
+api_id = "27631275" 
+api_hash = "d15c8c4c88a5b82aab6a673eff8ca244"
 
 # Session string from environment variable
-session_str = os.getenv("SESSION_STRING") 
+session_str = "1BVtsOMMBuzphEKhTDmOcTTJBLrl7FFi37rXneJX_abg-lLowkeBrbgkacqwVa4ouO-4YqSP9zjVBvGbJbUH_JNleRl50FDuW4ijSs87geQSfbVyJxRghIP99-ig2PVrhxpdWawPyhTRGOsVJegu8oXTRVqtw5XLddJld3xAY78Chu6XBiNZqo_tbvhOHqU2yM7tNws62fEhdihdYNJAK1DiDybKK_irBpe0DOjZ_OWe-Jsg0O8Mq7d_76J-8jneKhHSAEokblPuO_rSc5CftO-uy59MJ5hANPadV950F0WXyH6RHYbTctZC_3zd03WDpQmxIglBCLwPiBTLFevlxJHkEONfuXrk="
 client = TelegramClient(StringSession(session_str), api_id, api_hash)
 
 # Bot token
-TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = "7931829452:AAEKAPFVGZkweqBbcuVlPuKLxAT52W42a3o"
 
 # Your Telegram User ID (replace with your actual ID)
-OWNER_USER_ID = int(os.getenv("ADMIN_USER_ID"))
+OWNER_USER_ID = "6651946441"
 
 # Logging setup
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
