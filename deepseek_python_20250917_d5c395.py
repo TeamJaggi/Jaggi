@@ -1,22 +1,3 @@
-from flask import Flask
-import threading
-import os
-import time
-
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return "✅ 𝑇𝑟𝑦𝑖𝑛𝑔 𝑇𝑜 𝑇𝑎𝑐𝑘𝑙𝑒 𝑆𝑒𝑡𝑏𝑎𝑐𝑘 𝑇𝐺 - @MrJaggiX!"
-
-def run_flask():
-    port = int(os.environ.get("PORT", 5000))  
-    app.run(host="0.0.0.0", port=port)
-
-# Flask ko background thread me start karo
-threading.Thread(target=run_flask, daemon=True).start()
-
-# Performance optimization imports and settings
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import aiosqlite
@@ -34,18 +15,18 @@ MAX_CONCURRENT_FORWARDS = 15  # Increased concurrent operations
 BATCH_DELETE_SIZE = 20        # Batch size for delete operations
 DB_BATCH_COMMIT_SIZE = 10     # How many operations before committing to DB
 
-api_id = int(os.getenv("API_ID")) 
-api_hash = os.getenv("API_HASH")
+api_id = "28093492" 
+api_hash = "2d18ff97ebdfc2f1f3a2596c48e3b4e4"
 
 # Session string from environment variable
-session_str = os.getenv("SESSION_STRING") 
+session_str = "1BVtsOKEBu1MeTv3R34pBdzleykMcaWsuRLdyj2MWrIVEONvC0Lzi8Pr5_LDvNrwHGd4FQSAbDOBeypHfgozOdGcESYzsebxg1DPoVDiB2SEFAuwaQHdf6uReVr2E4vOxtdYBa_q2_rYQ0CJ2pB23MFBahvLPvBQU8a6LrV79MG1jslPNeSyEQB0NCmT2foRuG2Nkykbx-OxhslPaZczfoRJL_o_zqErpC_ByYYolEiWI6dY-0VE6D48iOMse8YjMLtYXl6HZuNkvgnxpuRWb7WXNGSyuu0aaO5CL0PiBoQB8g2r73Tg1C_K1JgaPY12TgTs6oZncAjEeMyXdYULxMOCaceFW3G0="
 client = TelegramClient(StringSession(session_str), api_id, api_hash)
 
 # Bot token
-TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = "7738808803:AAGWqOIHi8kqmKKeMWWVVLBDk9fQ50H2gZk"
 
 # Your Telegram User ID (replace with your actual ID)
-OWNER_USER_ID = int(os.getenv("ADMIN_USER_ID"))
+OWNER_USER_ID = "6651946441"
 
 # Logging setup
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
