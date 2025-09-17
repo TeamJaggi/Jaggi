@@ -9,18 +9,17 @@ import sqlite3
 import re
 from collections import defaultdict
 
-api_id = int(os.getenv("API_ID")) 
-api_hash = os.getenv("API_HASH")
-
+api_id = "28093492"
+api_hash = "7738808803:AAGWqOIHi8kqmKKeMWWVVLBDk9fQ50H2gZk"
 # Session string from environment variable
-session_str = os.getenv("SESSION_STRING") 
+session_str = "1BVtsOKEBu1MeTv3R34pBdzleykMcaWsuRLdyj2MWrIVEONvC0Lzi8Pr5_LDvNrwHGd4FQSAbDOBeypHfgozOdGcESYzsebxg1DPoVDiB2SEFAuwaQHdf6uReVr2E4vOxtdYBa_q2_rYQ0CJ2pB23MFBahvLPvBQU8a6LrV79MG1jslPNeSyEQB0NCmT2foRuG2Nkykbx-OxhslPaZczfoRJL_o_zqErpC_ByYYolEiWI6dY-0VE6D48iOMse8YjMLtYXl6HZuNkvgnxpuRWb7WXNGSyuu0aaO5CL0PiBoQB8g2r73Tg1C_K1JgaPY12TgTs6oZncAjEeMyXdYULxMOCaceFW3G0="
 client = TelegramClient(StringSession(session_str), api_id, api_hash)
 
 # Bot token
-TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = "7738808803:AAGWqOIHi8kqmKKeMWWVVLBDk9fQ50H2gZk"
 
 # Your Telegram User ID (replace with your actual ID)
-OWNER_USER_ID = int(os.getenv("ADMIN_USER_ID"))
+OWNER_USER_ID = "6651946441"
 
 # Logging setup
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
