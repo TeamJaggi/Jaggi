@@ -1,0 +1,137 @@
+{
+  "settings": {
+    "force_channel": "@MrJaggiX",
+    "welcome_message": "👋 Welcome! Send me a link and I’ll shorten it.",
+    "admin_id": 6651946441
+  },
+  "commands": [
+    {
+      "name": "start_first_time",
+      "type": "message",
+      "condition": "first_time",
+      "content": "{{settings.welcome_message}}",
+      "check_subscription": true,
+      "buttons": [
+        {
+          "text": "📢 Join Channel",
+          "url": "https://t.me/MrJaggiX"
+        },
+        {
+          "text": "✅ I've Joined",
+          "command": "check_join"
+        }
+      ]
+    },
+    {
+      "name": "start_again",
+      "type": "message",
+      "condition": "!first_time",
+      "content": "👋 Hi again! Send me any link and I'll shorten it using is.gd",
+      "check_subscription": true,
+      "buttons": [
+        {
+          "text": "📢 Join Channel",
+          "url": "https://t.me/MrJaggiX"
+        },
+        {
+          "text": "✅ I've Joined",
+          "command": "check_join"
+        }
+      ]
+    },
+    {
+      "name": "check_join",
+      "type": "check_subscription",
+      "success": "✅ Thank you for joining! Now send me any link.",
+      "failure": "🚫 You must join our channel to use this bot.",
+      "buttons": [
+        {
+          "text": "📢 Join Channel",
+          "url": "https://t.me/MrJaggiX"
+        },
+        {
+          "text": "✅ I've Joined",
+          "command": "check_join"
+        }
+      ]
+    },
+    {
+      "name": "shortener",
+      "type": "api_request",
+      "condition": "startsWith(text, 'http://') || startsWith(text, 'https://')",
+      "request": {
+        "url": "https://is.gd/create.php?format=simple&url={{text}}",
+        "method": "GET"
+      },
+      "response": "🔗 Shortened URL: {{result}}"
+    },
+    {
+      "name": "invalid",
+      "type": "message",
+      "condition": "!(startsWith(text, 'http://') || startsWith(text, 'https://'))",
+      "content": "❌ Please send a valid link starting with http:// or https://"
+    },
+    {
+      "name": "setchannel",
+      "type": "admin_command",
+      "admin_id": 6651946441,
+      "usage": "/setchannel @username",
+      "action": "update_setting",
+      "setting_name": "force_channel",
+      "response": "✅ Force subscription channel updated to {{new_value}}"
+    },
+    {
+      "name": "removechannel",
+      "type": "admin_command",
+      "admin_id": 6651946441,
+      "usage": "/removechannel",
+      "action": "update_setting",
+      "setting_name": "force_channel",
+      "value": "",
+      "response": "❌ Force subscription removed"
+    },
+    {
+      "name": "setwelcome",
+      "type": "admin_command",
+      "admin_id": 6651946441,
+      "usage": "/setwelcome <your message>",
+      "action": "update_setting",
+      "setting_name": "welcome_message",
+      "response": "✅ Welcome message updated:\n\n{{new_value}}"
+    },
+    {
+      "name": "removewelcome",
+      "type": "admin_command",
+      "admin_id": 6651946441,
+      "usage": "/removewelcome",
+      "action": "update_setting",
+      "setting_name": "welcome_message",
+      "value": "",
+      "response": "❌ Welcome message removed"
+    },
+    {
+      "name": "broadcast",
+      "type": "admin_command",
+      "admin_id": 6651946441,
+      "usage": "/broadcast <message>",
+      "action": "broadcast",
+      "response": "📢 Broadcast sent to all users!"
+    },
+    {
+      "name": "stats",
+      "type": "admin_command",
+      "admin_id": 6651946441,
+      "usage": "/stats",
+      "response": "📊 Bot Stats:\n👥 Total Users: {{users_count}}\n📢 Force Channel: {{settings.force_channel}}\n👋 Welcome Message: {{settings.welcome_message}}"
+    },
+    {
+      "name": "autokick",
+      "type": "subscription_monitor",
+      "channel": "{{settings.force_channel}}",
+      "on_leave": {
+        "action": "remove_user",
+        "message": "🚫 You left {{settings.force_channel}}, so you can’t use this bot anymore."
+      }
+    }
+  ]
+}
