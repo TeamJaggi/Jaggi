@@ -348,8 +348,84 @@ def handle_admin_callbacks(call):
 @bot.message_handler(func=lambda message: message.text in ['📖 How to Use', '🔧 Support', '📊 Statistics', '🔄 New Download'])
 def handle_buttons(message):
     """Handle button clicks"""
-    # ... (Keep your existing button handler code) ...
+    if message.text == '📖 How to Use':
+        help_text = """
+<b>📖 <u>HOW TO USE GUIDE</u></b>
 
+<b>🎯 STEP BY STEP:</b>
+
+1. <b>🔗 Copy TeraBox Link:</b>
+   • Open TeraBox app/website
+   • Share any file
+   • Copy the share link
+
+2. <b>📤 Paste Here:</b>
+   • Simply paste the link in chat
+   • Bot will auto-detect it
+
+3. <b>⏳ Wait & Download:</b>
+   • Bot processes the link
+   • Get download buttons
+   • Click to download!
+
+<b>📝 EXAMPLE LINKS:</b>
+<code>https://terabox.com/s/xxxxxxxxxxxx</code>
+<code>https://www.terabox.com/sharing/xxxxxxxx</code>
+
+<b>💡 TIPS:</b>
+• Links must be public
+• File size up to 2GB supported
+• Fast internet recommended
+        """
+        
+    elif message.text == '🔧 Support':
+        help_text = """
+<b>🔧 <u>SUPPORT & TROUBLESHOOTING</u></b>
+
+<b>🚨 COMMON ISSUES:</b>
+
+• <b>❌ Invalid Link:</b>
+  - Check link format
+  - Ensure it's from TeraBox
+
+• <b>⏳ Slow Processing:</b>
+  - Server might be busy
+  - Wait 1-2 minutes
+
+• <b>📄 File Not Found:</b>
+  - Link might be expired
+  - File may be deleted
+
+• <b>🔒 Download Failed:</b>
+  - Try different quality
+  - Check internet connection
+
+<b>🆘 NEED HELP?</b>
+• Try /start command
+• Ensure valid TeraBox links
+• Wait between requests
+        """
+        
+    elif message.text == '📊 Statistics':
+        show_stats(message)
+        return
+        
+    elif message.text == '🔄 New Download':
+        help_text = """
+<b>🔄 <u>READY FOR NEW DOWNLOAD!</u></b>
+
+✨ Send any TeraBox link now!
+
+<b>📌 REMEMBER:</b>
+• Valid TeraBox links only
+• Public/shared files work best
+• Large files need patience
+
+<b>🎯 QUICK START:</b>
+Copy → Paste → Download! 🚀
+        """
+    
+    bot.send_message(message.chat.id, help_text, disable_web_page_preview=True)
 @bot.message_handler(func=lambda message: True)
 def handle_all_messages(message):
     """🎯 Handle all incoming messages"""
