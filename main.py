@@ -18,8 +18,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # 🔑 Bot Token (Replace with your actual token)
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"
-
+BOT_TOKEN = "8402407395:AAF59enT0Jl3O8Hfp-9OyQkNSpG7kZ76S6A"
 # 🚀 Initialize bot
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode='HTML')
 
