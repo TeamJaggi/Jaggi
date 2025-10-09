@@ -348,6 +348,7 @@ def handle_admin_callbacks(call):
 @bot.message_handler(func=lambda message: message.text in ['📖 How to Use', '🔧 Support', '📊 Statistics', '🔄 New Download'])
 def handle_buttons(message):
     """Handle button clicks"""
+  
     if message.text == '📖 How to Use':
         help_text = """
 <b>📖 <u>HOW TO USE GUIDE</u></b>
@@ -426,6 +427,7 @@ Copy → Paste → Download! 🚀
         """
     
     bot.send_message(message.chat.id, help_text, disable_web_page_preview=True)
+    
 @bot.message_handler(func=lambda message: True)
 def handle_all_messages(message):
     """🎯 Handle all incoming messages"""
