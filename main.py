@@ -452,8 +452,26 @@ def handle_all_messages(message):
     )
     
     # Handle Terabox links
-    if is_terabox_link(text):
-        # ... (Keep your existing Terabox link handling code) ...
+    if not is_terabox_link(text):
+        error_msg = """
+❌ <b><u>INVALID LINK DETECTED!</u></b>
+
+🚫 This doesn't look like a valid TeraBox link.
+
+<b>🎯 PLEASE SEND:</b>
+• Valid TeraBox share links
+• Publicly accessible files
+• Properly formatted URLs
+
+<b>📝 VALID FORMATS:</b>
+<code>https://terabox.com/s/xxxxxxxx</code>
+<code>https://www.terabox.com/sharing/xxxxxx</code>
+
+💡 <i>Copy the share link from TeraBox app/website</i>
+        """
+        bot.reply_to(message, error_msg, disable_web_page_preview=True)
+        return
+    
         processing_msg = bot.reply_to(message, 
             "⏳ <b>Processing Your Link...</b>",
             disable_web_page_preview=True
