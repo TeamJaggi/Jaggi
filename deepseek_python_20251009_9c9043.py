@@ -1,0 +1,682 @@
+import os
+import requests
+import telebot
+import json
+import logging
+import time
+import threading
+from urllib.parse import urlparse
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup
+import re
+from admin import AdminManager
+
+# 🎨 Configure logging with style
+logging.basicConfig(
+    level=logging.INFO,
+    format='🎯 %(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# 🔑 Bot Token (Replace with your actual token)
+BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"
+
+# 🚀 Initialize bot
+bot = telebot.TeleBot(BOT_TOKEN, parse_mode='HTML')
+
+# 👑 Initialize Admin Manager
+admin_manager = AdminManager(bot)
+
+# 💾 Store user sessions
+user_sessions = {}
+
+class TeraboxDownloader:
+    def __init__(self):
+        self.apis = [
+            self.api_terabox_dl,
+            self.api_tb_botbns,
+            self.api_terabox_online,
+            self.api_terabox_api
+        ]
+        self.session = requests.Session()
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Referer': 'https://www.terabox.com/'
+        })
+
+    def api_terabox_dl(self, link):
+        """🎯 API 1: terabox-dl.com"""
+        try:
+            url = "https://terabox-dl.com/api/get-info"
+            payload = {'url': link}
+            response = self.session.post(url, data=payload, timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                logger.info(f"✅ API1 Success: {data.get('filename', 'Unknown')}")
+                return self.format_response(data)
+            return None
+        except Exception as e:
+            logger.error(f"❌ API1 Error: {e}")
+            return None
+
+    def api_tb_botbns(self, link):
+        """🎯 API 2: tb.botbns.xyz"""
+        try:
+            url = "https://tb.botbns.xyz/api/getInfo"
+            payload = {'url': link}
+            response = self.session.post(url, json=payload, timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('success'):
+                    file_data = data.get('data', {})
+                    logger.info(f"✅ API2 Success: {file_data.get('filename', 'Unknown')}")
+                    return self.format_response(file_data)
+            return None
+        except Exception as e:
+            logger.error(f"❌ API2 Error: {e}")
+            return None
+
+    def api_terabox_online(self, link):
+        """🎯 API 3: Online API"""
+        try:
+            url = "https://terabox-downloader.onrender.com/api"
+            payload = {'url': link}
+            response = self.session.post(url, json=payload, timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                logger.info(f"✅ API3 Success: {data.get('filename', 'Unknown')}")
+                return self.format_response(data)
+            return None
+        except Exception as e:
+            logger.error(f"❌ API3 Error: {e}")
+            return None
+
+    def api_terabox_api(self, link):
+        """🎯 API 4: Alternative API"""
+        try:
+            url = "https://terabox-api.vercel.app/api"
+            payload = {'url': link}
+            response = self.session.post(url, json=payload, timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                logger.info(f"✅ API4 Success: {data.get('filename', 'Unknown')}")
+                return self.format_response(data)
+            return None
+        except Exception as e:
+            logger.error(f"❌ API4 Error: {e}")
+            return None
+
+    def format_response(self, data):
+        """✨ Format API response consistently"""
+        if not data:
+            return None
+
+        result = {
+            'filename': data.get('filename', '📄 Unknown File'),
+            'size': data.get('size', '📦 Unknown Size'),
+            'duration': data.get('duration', '⏱️ N/A'),
+            'download_url': data.get('download_url', ''),
+            'qualities': {}
+        }
+
+        # Handle different quality formats
+        if data.get('qualities'):
+            result['qualities'] = data['qualities']
+        elif data.get('download_links'):
+            result['qualities'] = {'🚀 Direct': data['download_links']}
+        elif data.get('url'):
+            result['download_url'] = data['url']
+
+        return result
+
+    def get_download_info(self, link):
+        """🔄 Try all APIs with proper error handling"""
+        logger.info(f"🔗 Processing link: {link}")
+        
+        for i, api_method in enumerate(self.apis):
+            try:
+                logger.info(f"🔄 Trying API {i+1}...")
+                result = api_method(link)
+                if result and (result.get('download_url') or result.get('qualities')):
+                    logger.info(f"✅ API {i+1} successful!")
+                    return result
+                time.sleep(1)
+            except Exception as e:
+                logger.error(f"❌ API {i+1} failed: {e}")
+                continue
+        
+        return None
+
+# 🚀 Initialize downloader
+downloader = TeraboxDownloader()
+
+def is_terabox_link(text):
+    """🔍 Check if text is a valid Terabox link"""
+    patterns = [
+        r'https?://(www\.)?terabox\.com/[^\s]+',
+        r'https?://(www\.)?1024terabox\.com/[^\s]+',
+        r'https?://(www\.)?teraboxapp\.com/[^\s]+'
+    ]
+    
+    for pattern in patterns:
+        if re.search(pattern, text):
+            return True
+    return False
+
+def format_file_size(size_str):
+    """📊 Format file size for better display"""
+    if not size_str or size_str == '📦 Unknown Size':
+        return '📦 Unknown Size'
+    
+    try:
+        # Extract numbers from size string
+        size_num = float(re.findall(r'\d+\.?\d*', size_str)[0])
+        
+        # Convert to appropriate unit
+        for unit in ['Bytes', 'KB', 'MB', 'GB']:
+            if size_num < 1024.0:
+                return f"💾 {size_num:.2f} {unit}"
+            size_num /= 1024.0
+        return f"💾 {size_num:.2f} TB"
+    except:
+        return '📦 Unknown Size'
+
+def update_user_stats(user_id, username, first_name, last_name, download_count=0):
+    """Update user statistics in database"""
+    try:
+        import sqlite3
+        conn = sqlite3.connect(admin_manager.db_path)
+        cursor = conn.cursor()
+        
+        if download_count > 0:
+            cursor.execute('''
+                UPDATE users 
+                SET downloads_count = downloads_count + ?, last_active = CURRENT_TIMESTAMP
+                WHERE user_id = ?
+            ''', (download_count, user_id))
+        else:
+            cursor.execute('''
+                INSERT OR REPLACE INTO users 
+                (user_id, username, first_name, last_name, last_active)
+                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ''', (user_id, username, first_name, last_name))
+        
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.error(f"❌ Error updating user stats: {e}")
+
+@bot.message_handler(commands=['stats'])
+def show_stats(message):
+    """📊 Show user statistics with style"""
+    user_id = message.from_user.id
+    stats = user_sessions.get(user_id, {}).get('downloads', [])
+    
+    stats_text = f"""
+<b>📊 <u>YOUR DOWNLOAD STATS</u></b>
+
+<b>📥 Total Downloads:</b> <code>{len(stats)}</code>
+<b>⭐ Status:</b> {'🔥 Active User' if stats else '🎯 New User'}
+
+<b>📋 Recent Files:</b>
+"""
+    
+    if stats:
+        for i, file in enumerate(stats[-5:], 1):
+            emoji = "🎬" if any(ext in file.lower() for ext in ['.mp4', '.mkv', '.avi']) else "📄"
+            stats_text += f"{i}. {emoji} {file}\n"
+    else:
+        stats_text += "No downloads yet! Start by sending a TeraBox link. 🔗"
+    
+    bot.send_message(message.chat.id, stats_text)
+
+@bot.message_handler(commands=['start', 'help'])
+def send_welcome(message):
+    """🎉 Send welcome message with force sub check"""
+    user_id = message.from_user.id
+    username = message.from_user.username
+    first_name = message.from_user.first_name
+    
+    # Update user stats
+    update_user_stats(user_id, username, first_name, None)
+    
+    # Check force subscription
+    is_subscribed, not_joined_channels = admin_manager.check_user_subscription(user_id)
+    
+    if not is_subscribed:
+        # Show force subscription message
+        channels_text = "\n".join([f"• {channel}" for channel in not_joined_channels])
+        
+        force_sub_text = f"""
+🔒 <b>SUBSCRIPTION REQUIRED</b>
+
+To use this bot, you need to join our channel(s) first:
+
+{channels_text}
+
+⚠️ Please join the channel(s) above and then press the verification button below.
+        """
+        
+        keyboard = InlineKeyboardMarkup()
+        for channel in not_joined_channels:
+            keyboard.add(InlineKeyboardButton(
+                f"📢 Join {channel}",
+                url=f"https://t.me/{channel[1:]}"
+            ))
+        
+        keyboard.add(InlineKeyboardButton(
+            "✅ I've Joined - Verify",
+            callback_data="check_subscription"
+        ))
+        
+        bot.send_message(message.chat.id, force_sub_text, reply_markup=keyboard)
+        return
+    
+    # User is subscribed, show welcome message
+    welcome_text, welcome_image = admin_manager.get_welcome_message(
+        first_name or "User", 
+        f"@{username}" if username else "User"
+    )
+    
+    if welcome_image:
+        bot.send_photo(
+            message.chat.id,
+            welcome_image,
+            caption=welcome_text,
+            reply_markup=ReplyKeyboardMarkup(resize_keyboard=True, row_width=2).add(
+                '📖 How to Use', 
+                '🔧 Support',
+                '📊 Statistics',
+                '🔄 New Download'
+            )
+        )
+    else:
+        welcome_text += """
+
+📋 <b>HOW TO USE:</b>
+1. 🔗 Send any TeraBox link
+2. ⏳ Wait for processing
+3. 📥 Download your files!
+
+⚡ <b>COMMANDS:</b>
+/start - Start the bot
+/help - Show help
+/stats - Your statistics
+        """
+        
+        bot.send_message(
+            message.chat.id,
+            welcome_text,
+            reply_markup=ReplyKeyboardMarkup(resize_keyboard=True, row_width=2).add(
+                '📖 How to Use', 
+                '🔧 Support',
+                '📊 Statistics',
+                '🔄 New Download'
+            )
+        )
+
+@bot.callback_query_handler(func=lambda call: call.data == "check_subscription")
+def handle_subscription_check(call):
+    """Handle subscription verification"""
+    user_id = call.from_user.id
+    is_subscribed, not_joined_channels = admin_manager.check_user_subscription(user_id)
+    
+    if is_subscribed:
+        # User has joined all channels
+        first_name = call.from_user.first_name
+        username = call.from_user.username
+        
+        welcome_text, welcome_image = admin_manager.get_welcome_message(
+            first_name or "User", 
+            f"@{username}" if username else "User"
+        )
+        
+        if welcome_image:
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+            bot.send_photo(
+                call.message.chat.id,
+                welcome_image,
+                caption=welcome_text,
+                reply_markup=ReplyKeyboardMarkup(resize_keyboard=True, row_width=2).add(
+                    '📖 How to Use', 
+                    '🔧 Support',
+                    '📊 Statistics',
+                    '🔄 New Download'
+                )
+            )
+        else:
+            bot.edit_message_text(
+                f"✅ <b>Verification Successful!</b>\n\n{welcome_text}",
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                reply_markup=None
+            )
+    else:
+        # User still hasn't joined
+        bot.answer_callback_query(
+            call.id,
+            "❌ You haven't joined all required channels yet!",
+            show_alert=True
+        )
+
+@bot.message_handler(commands=['admin', 'broadcast', 'stats', 'addadmin', 'removeadmin', 'forceadd', 'forceremove', 'setwelcome', 'users'])
+def handle_admin_commands(message):
+    """Handle admin commands"""
+    admin_manager.handle_admin_command(message)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('admin_'))
+def handle_admin_callbacks(call):
+    """Handle admin callback queries"""
+    admin_manager.handle_admin_callback(call)
+
+@bot.message_handler(func=lambda message: message.text in ['📖 How to Use', '🔧 Support', '📊 Statistics', '🔄 New Download'])
+def handle_buttons(message):
+    """Handle button clicks"""
+    
+    if message.text == '📖 How to Use':
+        help_text = """
+<b>📖 <u>HOW TO USE GUIDE</u></b>
+
+<b>🎯 STEP BY STEP:</b>
+
+1. <b>🔗 Copy TeraBox Link:</b>
+   • Open TeraBox app/website
+   • Share any file
+   • Copy the share link
+
+2. <b>📤 Paste Here:</b>
+   • Simply paste the link in chat
+   • Bot will auto-detect it
+
+3. <b>⏳ Wait & Download:</b>
+   • Bot processes the link
+   • Get download buttons
+   • Click to download!
+
+<b>📝 EXAMPLE LINKS:</b>
+<code>https://terabox.com/s/xxxxxxxxxxxx</code>
+<code>https://www.terabox.com/sharing/xxxxxxxx</code>
+
+<b>💡 TIPS:</b>
+• Links must be public
+• File size up to 2GB supported
+• Fast internet recommended
+        """
+        
+    elif message.text == '🔧 Support':
+        help_text = """
+<b>🔧 <u>SUPPORT & TROUBLESHOOTING</u></b>
+
+<b>🚨 COMMON ISSUES:</b>
+
+• <b>❌ Invalid Link:</b>
+  - Check link format
+  - Ensure it's from TeraBox
+
+• <b>⏳ Slow Processing:</b>
+  - Server might be busy
+  - Wait 1-2 minutes
+
+• <b>📄 File Not Found:</b>
+  - Link might be expired
+  - File may be deleted
+
+• <b>🔒 Download Failed:</b>
+  - Try different quality
+  - Check internet connection
+
+<b>🆘 NEED HELP?</b>
+• Try /start command
+• Ensure valid TeraBox links
+• Wait between requests
+        """
+        
+    elif message.text == '📊 Statistics':
+        show_stats(message)
+        return
+        
+    elif message.text == '🔄 New Download':
+        help_text = """
+<b>🔄 <u>READY FOR NEW DOWNLOAD!</u></b>
+
+✨ Send any TeraBox link now!
+
+<b>📌 REMEMBER:</b>
+• Valid TeraBox links only
+• Public/shared files work best
+• Large files need patience
+
+<b>🎯 QUICK START:</b>
+Copy → Paste → Download! 🚀
+        """
+    
+    bot.send_message(message.chat.id, help_text, disable_web_page_preview=True)
+
+@bot.message_handler(func=lambda message: True)
+def handle_all_messages(message):
+    """🎯 Handle all incoming messages"""
+    user_id = message.from_user.id
+    text = message.text.strip()
+    
+    # Check force subscription for non-start messages
+    is_subscribed, not_joined_channels = admin_manager.check_user_subscription(user_id)
+    if not is_subscribed and not text.startswith('/'):
+        bot.reply_to(message, 
+            "❌ <b>Subscription Required!</b>\n\n"
+            "Please join our channel(s) first using /start command."
+        )
+        return
+    
+    # Update user activity
+    update_user_stats(
+        user_id, 
+        message.from_user.username, 
+        message.from_user.first_name, 
+        message.from_user.last_name
+    )
+    
+    # Handle Terabox links
+    if not is_terabox_link(text):
+        error_msg = """
+❌ <b><u>INVALID LINK DETECTED!</u></b>
+
+🚫 This doesn't look like a valid TeraBox link.
+
+<b>🎯 PLEASE SEND:</b>
+• Valid TeraBox share links
+• Publicly accessible files
+• Properly formatted URLs
+
+<b>📝 VALID FORMATS:</b>
+<code>https://terabox.com/s/xxxxxxxx</code>
+<code>https://www.terabox.com/sharing/xxxxxx</code>
+
+💡 <i>Copy the share link from TeraBox app/website</i>
+        """
+        bot.reply_to(message, error_msg, disable_web_page_preview=True)
+        return
+    
+    # Send processing message
+    processing_msg = bot.reply_to(message, 
+        "⏳ <b><u>PROCESSING YOUR REQUEST</u></b>\n\n"
+        "🔍 Analyzing TeraBox link...\n"
+        "📡 Connecting to servers...\n"
+        "⚡ Preparing download...\n\n"
+        "<i>Please wait, this may take a moment ✨</i>",
+        disable_web_page_preview=True
+    )
+    
+    # 🎯 Get download information
+    try:
+        file_info = downloader.get_download_info(text)
+        
+        if not file_info:
+            bot.edit_message_text(
+                "❌ <b><u>DOWNLOAD FAILED!</u></b>\n\n"
+                "🔍 <b>Possible Reasons:</b>\n"
+                "• Invalid or expired link\n"
+                "• File removed from server\n"
+                "• Temporary server issue\n"
+                "• Password protected file\n\n"
+                "💡 <b>Solutions:</b>\n"
+                "✅ Verify link validity\n"
+                "✅ Try again in 2-3 minutes\n"
+                "✅ Use different TeraBox link\n"
+                "✅ Check file accessibility\n\n"
+                "<i>If problem persists, try later 🔄</i>",
+                chat_id=message.chat.id,
+                message_id=processing_msg.message_id,
+                disable_web_page_preview=True
+            )
+            return
+        
+        # 🎨 Create stylish download buttons
+        keyboard = InlineKeyboardMarkup(row_width=1)
+        
+        # 📥 Add direct download button
+        if file_info.get('download_url'):
+            keyboard.add(InlineKeyboardButton(
+                "🚀 DIRECT DOWNLOAD NOW", 
+                url=file_info['download_url']
+            ))
+        
+        # 🎬 Add quality buttons if available
+        if file_info.get('qualities'):
+            for quality, url in file_info['qualities'].items():
+                if isinstance(url, str) and url.startswith('http'):
+                    quality_emoji = "🎬" if "video" in quality.lower() else "📄"
+                    keyboard.add(InlineKeyboardButton(
+                        f"{quality_emoji} {quality.upper()} QUALITY", 
+                        url=url
+                    ))
+        
+        # 🔄 Add action buttons
+        keyboard.add(
+            InlineKeyboardButton("🔄 TRY ANOTHER LINK", callback_data="new_link"),
+            InlineKeyboardButton("📊 SHOW STATS", callback_data="show_stats")
+        )
+        
+        # 📋 Format file information
+        filename = file_info.get('filename', '📄 Unknown File')
+        size = format_file_size(file_info.get('size'))
+        duration = file_info.get('duration', '⏱️ N/A')
+        
+        # 💾 Update user statistics
+        if user_id not in user_sessions:
+            user_sessions[user_id] = {'downloads': []}
+        user_sessions[user_id]['downloads'].append(filename)
+        if len(user_sessions[user_id]['downloads']) > 10:
+            user_sessions[user_id]['downloads'] = user_sessions[user_id]['downloads'][-10:]
+        
+        # Update download count in database
+        update_user_stats(user_id, None, None, None, 1)
+        
+        # ✨ Prepare success message
+        success_text = f"""
+✅ <b><u>DOWNLOAD READY!</u></b>
+
+📁 <b>File Name:</b> <code>{filename}</code>
+💾 <b>File Size:</b> <code>{size}</code>
+⏱️ <b>Duration:</b> <code>{duration}</code>
+
+🎯 <b>Download Options Below 👇</b>
+
+💡 <i>Click your preferred quality to start download</i>
+🚀 <i>Fast & secure downloads guaranteed!</i>
+        """
+        
+        bot.edit_message_text(
+            success_text,
+            chat_id=message.chat.id,
+            message_id=processing_msg.message_id,
+            reply_markup=keyboard,
+            disable_web_page_preview=True
+        )
+        
+    except Exception as e:
+        logger.error(f"💥 Error in handle_all_messages: {e}")
+        bot.edit_message_text(
+            "💥 <b><u>UNEXPECTED ERROR!</u></b>\n\n"
+            "😔 Something went wrong on our end.\n"
+            "🔧 Our team has been notified.\n\n"
+            "💡 <b>Quick Fix:</b>\n"
+            "• Try again in 2-3 minutes\n"
+            "• Check your internet connection\n"
+            "• Verify the TeraBox link\n\n"
+            "<i>We're working to fix this ASAP! 🛠️</i>",
+            chat_id=message.chat.id,
+            message_id=processing_msg.message_id
+        )
+
+@bot.callback_query_handler(func=lambda call: True)
+def handle_callbacks(call):
+    """🔄 Handle button callbacks"""
+    user_id = call.from_user.id
+    
+    if call.data == "new_link":
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+        bot.send_message(
+            call.message.chat.id,
+            "🔄 <b><u>READY FOR NEW LINK!</u></b>\n\n"
+            "✨ Send another TeraBox link now!\n\n"
+            "💡 <i>Copy → Paste → Download! 🚀</i>",
+            disable_web_page_preview=True
+        )
+    
+    elif call.data == "show_stats":
+        show_stats(call.message)
+
+def cleanup_sessions():
+    """🧹 Clean up old user sessions periodically"""
+    while True:
+        try:
+            # Simple cleanup - remove inactive sessions after 24 hours
+            # You can enhance this with proper timestamp tracking
+            if len(user_sessions) > 1000:  # Prevent memory overflow
+                user_sessions.clear()
+                logger.info("🧹 Cleaned all user sessions")
+            time.sleep(3600)  # Sleep for 1 hour
+        except Exception as e:
+            logger.error(f"❌ Cleanup error: {e}")
+
+# 🧹 Start cleanup thread
+cleanup_thread = threading.Thread(target=cleanup_sessions, daemon=True)
+cleanup_thread.start()
+
+def main():
+    """🚀 Main function to start the bot"""
+    logger.info("🎯 Starting Enhanced Terabox Downloader Bot...")
+    
+    try:
+        bot_info = bot.get_me()
+        logger.info(f"✅ Bot started successfully: @{bot_info.username}")
+        logger.info(f"👑 Admin system initialized with {len(admin_manager.admin_ids)} admins")
+        
+        bot.infinity_polling(timeout=60, long_polling_timeout=30)
+        
+    except Exception as e:
+        logger.error(f"💥 Bot failed to start: {e}")
+        logger.info("🔄 Restarting bot in 10 seconds...")
+        time.sleep(10)
+        main()
+
+if __name__ == "__main__":
+    print("""
+    🚀 ENHANCED TERABOX DOWNLOADER BOT
+    👑 Advanced Admin System
+    📊 User Management
+    📢 Broadcast System
+    🔥 Ready to Serve!
+    """)
+    
+    while True:
+        try:
+            main()
+        except KeyboardInterrupt:
+            logger.info("👋 Bot stopped by user")
+            break
+        except Exception as e:
+            logger.error(f"💥 Bot crashed: {e}")
+            logger.info("🔄 Restarting in 15 seconds...")
+            time.sleep(15)
