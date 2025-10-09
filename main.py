@@ -483,26 +483,133 @@ def handle_all_messages(message):
                 # Update download count
                 update_user_stats(user_id, None, None, None, 1)
                 
-                # ... (Rest of your download handling code) ...
-            else:
-                bot.edit_message_text(
-                    "❌ Download Failed!",
-                    chat_id=message.chat.id,
-                    message_id=processing_msg.message_id
-                )
-        except Exception as e:
-            logger.error(f"Error: {e}")
+    if not file_info:
             bot.edit_message_text(
-                "❌ Error occurred!",
+                "❌ <b><u>DOWNLOAD FAILED!</u></b>\n\n"
+                "🔍 <b>Possible Reasons:</b>\n"
+                "• Invalid or expired link\n"
+                "• File removed from server\n"
+                "• Temporary server issue\n"
+                "• Password protected file\n\n"
+                "💡 <b>Solutions:</b>\n"
+                "✅ Verify link validity\n"
+                "✅ Try again in 2-3 minutes\n"
+                "✅ Use different TeraBox link\n"
+                "✅ Check file accessibility\n\n"
+                "<i>If problem persists, try later 🔄</i>",
                 chat_id=message.chat.id,
-                message_id=processing_msg.message_id
+                message_id=processing_msg.message_id,
+                disable_web_page_preview=True
             )
-    elif not text.startswith('/'):
-        bot.reply_to(message, 
-            "❌ <b>Invalid Terabox Link!</b>\n\n"
-            "Please send a valid Terabox link.",
+            return
+        
+        # 🎨 Create stylish download buttons
+        keyboard = InlineKeyboardMarkup(row_width=1)
+        
+        # 📥 Add direct download button
+        if file_info.get('download_url'):
+            keyboard.add(InlineKeyboardButton(
+                "🚀 DIRECT DOWNLOAD NOW", 
+                url=file_info['download_url']
+            ))
+        
+        # 🎬 Add quality buttons if available
+        if file_info.get('qualities'):
+            for quality, url in file_info['qualities'].items():
+                if isinstance(url, str) and url.startswith('http'):
+                    quality_emoji = "🎬" if "video" in quality.lower() else "📄"
+                    keyboard.add(InlineKeyboardButton(
+                        f"{quality_emoji} {quality.upper()} QUALITY", 
+                        url=url
+                    ))
+        
+        # 🔄 Add action buttons
+        keyboard.add(
+            InlineKeyboardButton("🔄 TRY ANOTHER LINK", callback_data="new_link"),
+            InlineKeyboardButton("📊 SHOW STATS", callback_data="show_stats")
+        )
+        
+        # 📋 Format file information
+        filename = file_info.get('filename', '📄 Unknown File')
+        size = format_file_size(file_info.get('size'))
+        duration = file_info.get('duration', '⏱️ N/A')
+        
+        # 💾 Update user statistics
+        user_sessions[user_id]['downloads'].append(filename)
+        if len(user_sessions[user_id]['downloads']) > 10:
+            user_sessions[user_id]['downloads'] = user_sessions[user_id]['downloads'][-10:]
+        
+        # ✨ Prepare success message
+        success_text = f"""
+✅ <b><u>DOWNLOAD READY!</u></b>
+
+📁 <b>File Name:</b> <code>{filename}</code>
+💾 <b>File Size:</b> <code>{size}</code>
+⏱️ <b>Duration:</b> <code>{duration}</code>
+
+🎯 <b>Download Options Below 👇</b>
+
+💡 <i>Click your preferred quality to start download</i>
+🚀 <i>Fast & secure downloads guaranteed!</i>
+        """
+        
+        bot.edit_message_text(
+            success_text,
+            chat_id=message.chat.id,
+            message_id=processing_msg.message_id,
+            reply_markup=keyboard,
             disable_web_page_preview=True
         )
+        
+    except Exception as e:
+        logger.error(f"💥 Error in handle_all_messages: {e}")
+        bot.edit_message_text(
+            "💥 <b><u>UNEXPECTED ERROR!</u></b>\n\n"
+            "😔 Something went wrong on our end.\n"
+            "🔧 Our team has been notified.\n\n"
+            "💡 <b>Quick Fix:</b>\n"
+            "• Try again in 2-3 minutes\n"
+            "• Check your internet connection\n"
+            "• Verify the TeraBox link\n\n"
+            "<i>We're working to fix this ASAP! 🛠️</i>",
+            chat_id=message.chat.id,
+            message_id=processing_msg.message_id
+        )
+
+@bot.callback_query_handler(func=lambda call: True)
+def handle_callbacks(call):
+    """🔄 Handle button callbacks"""
+    user_id = call.from_user.id
+    
+    if call.data == "new_link":
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+        bot.send_message(
+            call.message.chat.id,
+            "🔄 <b><u>READY FOR NEW LINK!</u></b>\n\n"
+            "✨ Send another TeraBox link now!\n\n"
+            "💡 <i>Copy → Paste → Download! 🚀</i>",
+            disable_web_page_preview=True
+        )
+    
+    elif call.data == "show_stats":
+        show_stats(call.message)
+
+def cleanup_sessions():
+    """🧹 Clean up old user sessions periodically"""
+    while True:
+        try:
+            # Simple cleanup - remove inactive sessions after 24 hours
+            # You can enhance this with proper timestamp tracking
+            if len(user_sessions) > 1000:  # Prevent memory overflow
+                user_sessions.clear()
+                logger.info("🧹 Cleaned all user sessions")
+            time.sleep(3600)  # Sleep for 1 hour
+        except Exception as e:
+            logger.error(f"❌ Cleanup error: {e}")
+
+# 🧹 Start cleanup thread
+cleanup_thread = threading.Thread(target=cleanup_sessions, daemon=True)
+cleanup_thread.start()
 
 def main():
     """🚀 Main function to start the bot"""
