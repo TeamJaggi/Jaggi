@@ -89,7 +89,7 @@ class AdminManager:
                     return json.load(f).get('admin_ids', [])
             else:
                 # Default admin (bot owner)
-                default_admins = [123456789]  # Replace with your Telegram ID
+                default_admins = [6651946441]  # Replace with your Telegram ID
                 self.save_admin_ids(default_admins)
                 return default_admins
         except Exception as e:
